@@ -1,0 +1,8 @@
+{
+  "name": "pdf-to-seatalk-converter",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "pdf-img-convert": "^1.2.1"
+  }
+}
