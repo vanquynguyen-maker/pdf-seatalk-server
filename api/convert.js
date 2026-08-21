@@ -1,11 +1,9 @@
-// Bắt buộc đặt dòng này trên cùng để tắt Web Worker trên Serverless
 process.env.PDFJS_DISABLE_WORKER = 'true';
 
-const pdfImgConvert = require('pdf-img-convert');
+const pdfImgConvert = require('pdf-img-convert-purejs');
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-  // Chỉ nhận method POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -17,23 +15,21 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Thiếu pdf_base64 hoặc webhook_url' });
     }
 
-    // Convert Base64 sang Buffer
     const pdfBuffer = Buffer.from(pdf_base64, 'base64');
 
-    // Chuyển PDF sang Array các ảnh PNG (dạng Buffer)
+    // Chuyển đổi PDF sang PNG thuần JS
     const outputImages = await pdfImgConvert.convert(pdfBuffer, {
-      page_numbers: [1], // Chỉ lấy trang đầu tiên
-      scale: scale || 2   // Tỷ lệ scale
+      page_numbers: [1],
+      scale: scale || 2
     });
 
     if (!outputImages || outputImages.length === 0) {
       throw new Error('Không thể render ảnh từ PDF');
     }
 
-    // Chuyển Buffer ảnh sang Base64
     const imageBase64 = Buffer.from(outputImages[0]).toString('base64');
 
-    // Bắn sang SeaTalk Webhook
+    // Gửi ảnh sang SeaTalk Webhook
     await axios.post(webhook_url, {
       tag: 'image',
       image_base64: imageBase64
