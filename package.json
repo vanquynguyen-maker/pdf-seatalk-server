@@ -1,7 +1,16 @@
 {
+  "name": "pdf-to-seatalk",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'No build step required'"
+  },
   "dependencies": {
-    "pdf2pic": "^3.1.1",
-    "@graphicsmagick/imagemagick-compat": "^1.0.0",
+    "pdfjs-dist": "^3.11.174",
+    "canvas": "^2.11.2",
     "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }
