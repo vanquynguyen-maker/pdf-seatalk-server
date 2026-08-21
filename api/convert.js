@@ -3,13 +3,12 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Chỉ hỗ trợ POST' });
   }
 
-  let pdf2img;
+  let pdfToImg;
   try {
-    // Đưa require vào đây (thay vì đầu file) để nếu thư viện load lỗi,
-    // mình bắt được và trả JSON rõ ràng thay vì server crash im lặng.
-    pdf2img = require('pdf-img-convert');
+    // pdf-to-img là thư viện ESM, dùng dynamic import() để gọi được từ CommonJS
+    ({ pdf: pdfToImg } = await import('pdf-to-img'));
   } catch (loadErr) {
-    console.error('Lỗi load thư viện pdf-img-convert:', loadErr);
+    console.error('Lỗi load thư viện pdf-to-img:', loadErr);
     return res.status(500).json({
       error: 'LOAD_LIBRARY_FAILED: ' + (loadErr.message || String(loadErr)),
       stack: loadErr.stack
@@ -25,18 +24,19 @@ module.exports = async (req, res) => {
 
     const pdfBuffer = Buffer.from(pdf_base64, 'base64');
 
-    // scale càng cao càng nét, nhưng lâu hơn. scale=4 là mức nét cao, an toàn với PDF 1 trang nhỏ (bảng phân bổ ca).
-    const outputImages = await pdf2img.convert(pdfBuffer, {
-      scale: scale || 4
-    });
+    const document = await pdfToImg(pdfBuffer, { scale: scale || 4 });
 
-    if (!outputImages || outputImages.length === 0) {
+    let pngBuffer = null;
+    for await (const image of document) {
+      pngBuffer = image; // Chỉ lấy trang đầu tiên (vùng chụp A1:N24 luôn nằm gọn 1 trang)
+      break;
+    }
+
+    if (!pngBuffer) {
       return res.status(500).json({ error: 'Không convert được PDF sang ảnh' });
     }
 
-    // Chỉ lấy trang đầu tiên (vùng chụp A1:N24 luôn nằm gọn 1 trang)
-    const pngBuffer = Buffer.from(outputImages[0]);
-    const pngBase64 = pngBuffer.toString('base64');
+    const pngBase64 = Buffer.from(pngBuffer).toString('base64');
 
     const seatalkPayload = {
       tag: 'image',
