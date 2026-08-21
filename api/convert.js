@@ -1,8 +1,5 @@
 const axios = require('axios');
-const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-
-// Tắt hoàn toàn Worker để chạy trực tiếp trên Serverless Memory
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+const pdfImgConvert = require('pdf-img-convert');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -16,30 +13,27 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Thiếu pdf_base64 hoặc webhook_url' });
     }
 
-    // Decode Base64
-    const loadingTask = pdfjsLib.getDocument({
-      data: new Uint8Array(Buffer.from(pdf_base64, 'base64')),
-      disableFontFace: true,
-      verbosity: 0
+    const pdfBuffer = Buffer.from(pdf_base64, 'base64');
+
+    // Chuyển PDF thành danh sách các trang ảnh PNG
+    const outputImages = await pdfImgConvert.convert(pdfBuffer, {
+      page_numbers: [1],
+      scale: 2
     });
 
-    const pdfDoc = await loadingTask.promise;
-    const page = await pdfDoc.getPage(1);
-    const viewport = page.getViewport({ scale: 2.0 });
+    if (!outputImages || outputImages.length === 0) {
+      throw new Error('Không thể convert PDF sang PNG');
+    }
 
-    // Tạo Canvas Polyfill thuần JS chạy trong bộ nhớ Vercel
-    const Canvas = require('pdfjs-dist/legacy/build/pdf.js');
-    
-    // Gửi trực tiếp bản PDF Base64/Image dưới dạng SeaTalk Webhook Payload
-    // Nếu SeaTalk nhận ảnh Base64:
+    const imageBase64 = Buffer.from(outputImages[0]).toString('base64');
+
+    // Gửi ảnh sang SeaTalk
     await axios.post(webhook_url, {
-      tag: 'text',
-      text: {
-        content: 'Báo cáo tự động đã được xử lý xong!'
-      }
+      tag: 'image',
+      image_base64: imageBase64
     });
 
-    return res.status(200).json({ success: true, message: 'Thành công' });
+    return res.status(200).json({ success: true, message: 'Thành công!' });
 
   } catch (error) {
     console.error('Lỗi API Convert:', error);
