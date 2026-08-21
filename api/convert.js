@@ -42,9 +42,14 @@ module.exports = async (req, res) => {
 
     // Cắt khít theo đúng tỷ lệ khung hình thật của vùng dữ liệu (loại bỏ khoảng trắng thừa
     // do Google PDF export vẫn giữ khoảng đệm trang, đặc biệt ở chiều cao).
+    // Đệm thêm 4% chiều cao để không cắt hụt mất dòng cuối cùng.
+    const HEIGHT_BUFFER = 1.04;
     if (aspect_ratio && aspect_ratio > 0) {
       const meta = await sharp(finalBuffer).metadata();
-      const targetHeight = Math.round(meta.width / aspect_ratio);
+      const targetHeight = Math.min(
+        meta.height,
+        Math.round((meta.width / aspect_ratio) * HEIGHT_BUFFER)
+      );
       if (targetHeight > 0 && targetHeight < meta.height) {
         finalBuffer = await sharp(finalBuffer)
           .extract({ left: 0, top: 0, width: meta.width, height: targetHeight })
