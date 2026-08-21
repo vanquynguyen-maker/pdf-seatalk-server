@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "axios": "^1.6.0",
-    "pdf-img-convert": "^1.2.1"
+    "pdf-img-convert-purejs": "^1.0.1"
   },
   "engines": {
     "node": "22.x"
