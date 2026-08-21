@@ -6,7 +6,7 @@
     "node": "20.x"
   },
   "dependencies": {
-    "pdf-to-img": "^4.2.0"
+    "pdf-to-img": "^4.2.0",
+    "pdfjs-dist": "^4.7.76"
   }
 }
-
