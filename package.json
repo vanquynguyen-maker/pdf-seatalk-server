@@ -1,14 +1,10 @@
 {
-  "name": "pdf-to-seatalk",
+  "name": "pdf-seatalk-server",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "build": "echo 'No build step required'"
-  },
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.65",
     "axios": "^1.6.0",
-    "pdfjs-dist": "3.11.174"
+    "pdf-img-convert": "^1.2.1"
   },
   "engines": {
     "node": "22.x"
