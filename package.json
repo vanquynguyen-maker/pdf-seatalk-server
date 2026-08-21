@@ -1,11 +1,7 @@
 {
-  "name": "pdf-to-seatalk-converter",
-  "version": "1.0.0",
-  "private": true,
-  "engines": {
-    "node": "20.x"
-  },
   "dependencies": {
-    "pdf-img-convert": "^1.2.1"
+    "pdf2pic": "^3.1.1",
+    "@graphicsmagick/imagemagick-compat": "^1.0.0",
+    "axios": "^1.6.0"
   }
 }
