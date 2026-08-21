@@ -2,9 +2,13 @@
   "name": "pdf-seatalk-server",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "build": "echo 'No build step required'"
+  },
   "dependencies": {
     "axios": "^1.6.0",
-    "pdf-img-convert-purejs": "^1.0.1"
+    "pdfjs-dist": "3.11.174",
+    "pure-canvas": "^0.1.0"
   },
   "engines": {
     "node": "22.x"
