@@ -1,45 +1,63 @@
-const axios = require('axios');
-const pdfImgConvert = require('pdf-img-convert');
-
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return res.status(405).json({ error: 'Chỉ hỗ trợ POST' });
+  }
+
+  let pdf2img;
+  try {
+    // Đưa require vào đây (thay vì đầu file) để nếu thư viện load lỗi,
+    // mình bắt được và trả JSON rõ ràng thay vì server crash im lặng.
+    pdf2img = require('pdf-img-convert');
+  } catch (loadErr) {
+    console.error('Lỗi load thư viện pdf-img-convert:', loadErr);
+    return res.status(500).json({
+      error: 'LOAD_LIBRARY_FAILED: ' + (loadErr.message || String(loadErr)),
+      stack: loadErr.stack
+    });
   }
 
   try {
-    const { pdf_base64, webhook_url } = req.body;
+    const { pdf_base64, webhook_url, scale } = req.body || {};
 
     if (!pdf_base64 || !webhook_url) {
-      return res.status(400).json({ error: 'Thiếu pdf_base64 hoặc webhook_url' });
+      return res.status(400).json({ error: 'Thiếu pdf_base64 hoặc webhook_url trong body' });
     }
 
     const pdfBuffer = Buffer.from(pdf_base64, 'base64');
 
-    // Chuyển PDF thành danh sách các trang ảnh PNG
-    const outputImages = await pdfImgConvert.convert(pdfBuffer, {
-      page_numbers: [1],
-      scale: 2
+    // scale càng cao càng nét, nhưng lâu hơn. scale=4 là mức nét cao, an toàn với PDF 1 trang nhỏ (bảng phân bổ ca).
+    const outputImages = await pdf2img.convert(pdfBuffer, {
+      scale: scale || 4
     });
 
     if (!outputImages || outputImages.length === 0) {
-      throw new Error('Không thể convert PDF sang PNG');
+      return res.status(500).json({ error: 'Không convert được PDF sang ảnh' });
     }
 
-    const imageBase64 = Buffer.from(outputImages[0]).toString('base64');
+    // Chỉ lấy trang đầu tiên (vùng chụp A1:N24 luôn nằm gọn 1 trang)
+    const pngBuffer = Buffer.from(outputImages[0]);
+    const pngBase64 = pngBuffer.toString('base64');
 
-    // Gửi ảnh sang SeaTalk
-    await axios.post(webhook_url, {
+    const seatalkPayload = {
       tag: 'image',
-      image_base64: imageBase64
+      image_base64: { content: pngBase64 }
+    };
+
+    const seatalkResp = await fetch(webhook_url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(seatalkPayload)
     });
 
-    return res.status(200).json({ success: true, message: 'Thành công!' });
+    const seatalkResultText = await seatalkResp.text();
 
-  } catch (error) {
-    console.error('Lỗi API Convert:', error);
-    return res.status(500).json({
-      error: 'Server convert PDF lỗi',
-      details: error.message || error.toString()
+    return res.status(200).json({
+      success: true,
+      seatalk_status: seatalkResp.status,
+      seatalk_response: seatalkResultText
     });
+  } catch (err) {
+    console.error('Lỗi convert PDF:', err);
+    return res.status(500).json({ error: err.message || String(err), stack: err.stack });
   }
 };
